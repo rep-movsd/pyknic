@@ -1,0 +1,5 @@
+Flake8 the code
+Add __main__ whatevs to make module importable
+Add usage examples in docstring
+List type prefixes in docstring
+
