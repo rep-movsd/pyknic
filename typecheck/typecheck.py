@@ -40,7 +40,12 @@ the possible completions when you key in the type prefix.
 
 Does it work for keyword args?
 ------------------------------
-Yes
+Yes!
+
+
+Does it work for default args?
+------------------------------
+Not yet...
 
 
 Can we add more types?
@@ -120,9 +125,11 @@ class TypeChecker(object):
     def __init__(self, function):
         self.function = function
 
+
     @classmethod
     def registerType(_, sPrefix, tType):
         TypeChecker.dctTypes[sPrefix] = tType
+
 
     def getArgsInfo(self, arrArgNames, arrArgValues, index = 0):
         arrArgTypes = [TypeChecker.dctTypes.get(re.split('[^a-z]', x)[0], '') for x in arrArgNames]
@@ -132,20 +139,17 @@ class TypeChecker(object):
 
     def call(self, *args, **kwargs):
         arrTypes = self.getArgsInfo(inspect.getargspec(self.function)[0] + kwargs.keys(), list(args) + kwargs.values()) 
-        arrTypesKW = self.getArgsInfo(kwargs.keys(), kwargs.values(), len(arrTypes) + 1)
-        sMismatch = '\n'.join(['Arg(%d) %s: Expected %s, got %s' % t for t in (arrTypes + arrTypesKW) if t[2] and t[2] != t[3]])
-       
+        sMismatch = '\n'.join(['Arg(%d) %s: Expected %s, got %s' % t for t in arrTypes if t[2] and t[2] != t[3]])
         if len(sMismatch):
             raise Exception(sMismatch) 
-
         self.function.__call__(*args, **kwargs)
 
 def typecheck(function):
     return TypeChecker(function).call
 
 @typecheck
-def fn(fCount, sName, dctTest, aThing=1, **kwargs):
-    print locals()
+def fn(fCount, sName, dctTest, aThing, **kwargs):
+    pass #print locals()
 
-fn(1.0, 'apple', {'hell' : 'world'}, fApple=1.2)
-fn(1.0, 'apple', {'hell' : 'world'}, fApple=1)
+fn(1.0, 'apple', {'hell' : 'world'}, 2, fApple=1.2)
+fn(1.0, 'apple', {'hell' : 'world'}, "Ha", fApple=1)
