@@ -143,15 +143,15 @@ class TypeChecker(object):
     def getArgsInfo(self, arrArgNames, arrArgValues):
         arrArgTypes = [TypeChecker.dctTypes.get(re.split('[^a-z]', x)[0], '') for x in arrArgNames]
         arrValTypes = [type(x) for x in arrArgValues]
-        return [x for x in itertools.izip(range(0, len(arrArgNames)), arrArgNames, arrArgTypes, arrValTypes)]
+        return [x for x in itertools.izip(range(0, len(arrArgNames)), arrArgNames, arrArgTypes, arrValTypes, arrArgValues)]
         
 
     def call(self, *args, **kwargs):
         argSpec = inspect.getargspec(self.function)
         arrNames = argSpec[0]
-        arrDefaults = list(argSpec[3])
+        arrDefaults = list(argSpec[3] or ())
         arrTypes = self.getArgsInfo(arrNames + kwargs.keys(), list(args) + arrDefaults + kwargs.values()) 
-        sTypeCheckerMismatch = '\n'.join(['Arg(%d) %s: Expected %s, got %s' % t for t in arrTypes if t[2] and t[2] != t[3]])
+        sTypeCheckerMismatch = '\n'.join(['Arg(%d) %s: Expected %s, got %s with value "%s"' % t for t in arrTypes if t[2] and t[2] != t[3]])
         if len(sTypeCheckerMismatch):
             raise Exception('Type check errors in function ' + self.function.__name__ + '\n' + sTypeCheckerMismatch) 
         self.function.__call__(*args, **kwargs)
@@ -159,9 +159,26 @@ class TypeChecker(object):
 def typecheck(function):
     return TypeChecker(function).call
 
-@typecheck
-def fn(fCount, sName, dctTest, iThing=1, something=2, **kwargs):
-    pass #print locals()
+if __name__ == '__main__':
 
-fn(1.0, 'banana', {'hell' : 'world'}, "s", fApple=1.2)
-#fn(1.0, 'apple', {'hell' : 'world'}, "Ha", fApple=1)
+    @typecheck
+    def fn(fCount, sName, dctTest, iThing, untyped, fApple, **kwargs):
+        print 'OK!'
+
+    print '''fn(fCount, sName, dctTest, iThing, untyped, fApple, **kwargs)\n'''
+
+    try:
+        print '''Testing:  fn(1.0, 'banana', {'hell' : 'world'}, "s", 'whatevs', fApple=1.2)'''
+        fn(1.0, 'banana', {'hell' : 'world'}, "s", 'whatevs', fApple=1.2)
+    except Exception as e:
+        print e;
+    
+    try:
+        print '''\nTesting: fn(1.0, 'banana', {'hell' : 'world'}, 1, 1, fApple=1.2)'''
+        fn(1.0, 'banana', {'hell' : 'world'}, 1, 1, fApple=1.2)
+    except Exception as e:
+        print e;
+    
+    
+    
+    #fn(1.0, 'apple', {'hell' : 'world'}, "Ha", fApple=1)
