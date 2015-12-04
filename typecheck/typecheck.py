@@ -9,7 +9,7 @@ FAQ
 What is it?
 -----------
 Essentially a decorator that you apply to functions, which throws an exception 
-if the wrong type of argument is passed to the function. 
+if the wrong type of arguments are passed to the function. 
 
 
 Why do we need it?
@@ -38,6 +38,15 @@ Also type prefixes work brilliantly with IDE autocomplete. It helps filter out
 the possible completions when you key in the type prefix.
 
 
+Why not pass the argument types to the decorator?
+-------------------------------------------------
+If you did that, it woul be harder to read what param has what type and would 
+look messy. Also, if you did that, you wouldn't catch errors if the arguments 
+are reordered and the call sites not updated.
+Here, it's just about renaming args and adding a parameter-less decorator, and
+it will catch type errors caused by argument reordering
+
+
 Does it work for keyword args?
 ------------------------------
 Yes!
@@ -45,7 +54,7 @@ Yes!
 
 Does it work for default args?
 ------------------------------
-Not yet...
+Yes!
 
 
 Can we add more types?
@@ -131,25 +140,28 @@ class TypeChecker(object):
         TypeChecker.dctTypes[sPrefix] = tType
 
 
-    def getArgsInfo(self, arrArgNames, arrArgValues, index = 0):
+    def getArgsInfo(self, arrArgNames, arrArgValues):
         arrArgTypes = [TypeChecker.dctTypes.get(re.split('[^a-z]', x)[0], '') for x in arrArgNames]
         arrValTypes = [type(x) for x in arrArgValues]
-        return [x for x in itertools.izip(range(index, len(arrArgNames) + index), arrArgNames, arrArgTypes, arrValTypes)]
+        return [x for x in itertools.izip(range(0, len(arrArgNames)), arrArgNames, arrArgTypes, arrValTypes)]
         
 
     def call(self, *args, **kwargs):
-        arrTypes = self.getArgsInfo(inspect.getargspec(self.function)[0] + kwargs.keys(), list(args) + kwargs.values()) 
-        sMismatch = '\n'.join(['Arg(%d) %s: Expected %s, got %s' % t for t in arrTypes if t[2] and t[2] != t[3]])
-        if len(sMismatch):
-            raise Exception(sMismatch) 
+        argSpec = inspect.getargspec(self.function)
+        arrNames = argSpec[0]
+        arrDefaults = list(argSpec[3])
+        arrTypes = self.getArgsInfo(arrNames + kwargs.keys(), list(args) + arrDefaults + kwargs.values()) 
+        sTypeCheckerMismatch = '\n'.join(['Arg(%d) %s: Expected %s, got %s' % t for t in arrTypes if t[2] and t[2] != t[3]])
+        if len(sTypeCheckerMismatch):
+            raise Exception('Type check errors in function ' + self.function.__name__ + '\n' + sTypeCheckerMismatch) 
         self.function.__call__(*args, **kwargs)
 
 def typecheck(function):
     return TypeChecker(function).call
 
 @typecheck
-def fn(fCount, sName, dctTest, aThing, **kwargs):
+def fn(fCount, sName, dctTest, iThing=1, something=2, **kwargs):
     pass #print locals()
 
-fn(1.0, 'apple', {'hell' : 'world'}, 2, fApple=1.2)
-fn(1.0, 'apple', {'hell' : 'world'}, "Ha", fApple=1)
+fn(1.0, 'banana', {'hell' : 'world'}, "s", fApple=1.2)
+#fn(1.0, 'apple', {'hell' : 'world'}, "Ha", fApple=1)
